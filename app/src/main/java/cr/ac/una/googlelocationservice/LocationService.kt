@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.ContentValues.TAG
 import android.content.Context
@@ -13,6 +14,7 @@ import android.content.pm.PackageManager
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.common.api.ApiException
@@ -33,10 +35,17 @@ class LocationService : Service() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var notificationManager: NotificationManager
     private var contNotificacion =2
+    private lateinit var   buttonIntent :Intent
+    private lateinit var buttonPendingIntent: PendingIntent
 
     override fun onCreate() {
         super.onCreate()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        buttonIntent = Intent(this, MainActivity::class.java).apply {
+            action = "OPEN_FRAGMENT"
+            putExtra("param_key", "param_value")
+        }
+        buttonPendingIntent = PendingIntent.getActivity(this, 0, buttonIntent, PendingIntent.FLAG_UPDATE_CURRENT)
         Places.initialize(applicationContext, "AIzaSyBLiFVeg7U_Ugu5bMf7EQ_TBEfPE3vOSF4")
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -44,6 +53,8 @@ class LocationService : Service() {
         this.startForeground(1, createNotification("Service running"))
 
         requestLocationUpdates()
+
+
     }
 
     private fun createNotificationChannel() {
@@ -56,6 +67,9 @@ class LocationService : Service() {
         notificationManager.createNotificationChannel(serviceChannel)
 
     }
+
+
+
 
     private fun createNotification(message: String): Notification {
         return NotificationCompat.Builder(this, "locationServiceChannel")
@@ -102,7 +116,7 @@ class LocationService : Service() {
 
 
     @SuppressLint("MissingPermission")
-    private fun getPlaceName(latitude: Double, longitude: Double) {
+    private fun  getPlaceName(latitude: Double, longitude: Double) {
 
         val placeFields: List<Place.Field> = listOf(Place.Field.NAME)
 
@@ -133,9 +147,16 @@ class LocationService : Service() {
 
     private fun sendNotification(message: String) {
         contNotificacion++
+        val notificationLayout = RemoteViews(packageName, R.layout.notificacion).apply {
+            setTextViewText(R.id.title, "Punto de interés")
+            setTextViewText(R.id.message, message)
+            setOnClickPendingIntent(R.id.boton_notificacion, buttonPendingIntent)
+        }
         val notification = NotificationCompat.Builder(this, "locationServiceChannel")
-            .setContentTitle("Lugar encontrado")
-            .setContentText(message).setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(com.google.android.material.R.drawable.ic_m3_chip_check)
+            .setCustomContentView(notificationLayout)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
             .build()
         notificationManager.notify(contNotificacion, notification)
     }
@@ -144,3 +165,33 @@ class LocationService : Service() {
         return null
     }
 }
+
+/**
+ * onCreate del main activity
+ *
+ *         if (intent?.action == "OPEN_FRAGMENT") {
+ *             val paramValue = intent.getStringExtra("param_key")
+ *             openSpecificFragment(paramValue)
+ *         }
+ *
+ *         private fun openSpecificFragment(paramValue: String?) {
+ *         val specificFragment = SpecificFragment().apply {
+ *             arguments = Bundle().apply {
+ *                 putString("param_key", paramValue)
+ *             }
+ *         }
+ *
+ *         supportFragmentManager.beginTransaction()
+ *             .replace(R.id.fragment_container, specificFragment)
+ *             .commit()
+ *     }
+ *
+ *     onCreatedView del fragmento
+ *
+ *
+ *         arguments?.getString("param_key")?.let { paramValue ->
+ *             val textView = view.findViewById<TextView>(R.id.param_text_view)
+ *             textView.text = paramValue
+ *         }
+ *
+ */
