@@ -169,6 +169,8 @@ class LocationService : Service() {
 /**
  * onCreate del main activity
  *
+ *
+ *
  *         if (intent?.action == "OPEN_FRAGMENT") {
  *             val paramValue = intent.getStringExtra("param_key")
  *             openSpecificFragment(paramValue)
